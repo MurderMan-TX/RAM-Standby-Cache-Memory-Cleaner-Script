@@ -1,6 +1,6 @@
 Go to powershell as admin and do this:
 
-cd C:\Users\19727\Downloads\RAMStandbyCleaner
+cd C:\Users\<YourUsernaame>\Downloads\RAMStandbyCleaner
 
 powershell -NoExit -ExecutionPolicy Bypass -File "RAMStandbyCleanerV2.ps1" -Once
 
