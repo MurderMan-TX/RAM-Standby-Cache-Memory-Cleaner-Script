@@ -1,0 +1,23 @@
+Go to powershell as admin and do this:
+
+cd C:\Users\19727\Downloads\RAMStandbyCleaner
+
+powershell -NoExit -ExecutionPolicy Bypass -File "RAMStandbyCleanerV2.ps1" -Once
+
+powershell -NoExit -ExecutionPolicy Bypass -File "RAMStandbyCleanerV2.ps1" -IntervalSeconds 300
+
+
+Creating a shortcut on your Task bar:
+Right-click RAMStandbyCleanerV2.ps1 → New → Shortcut
+
+Then Right click on the shortcut and go to Properties.
+
+Update this as the Target path:
+powershell.exe -NoExit -ExecutionPolicy Bypass -File "C:\Users\19727\Downloads\RAMStandbyCleaner\RAMStandbyCleanerV2.ps1" -IntervalSeconds 300
+
+Example:
+powershell.exe -NoExit -ExecutionPolicy Bypass -File "C:\Users\19727\Downloads\RAMStandbyCleanerRAMStandbyCleaner\RAMStandbyCleanerV2.ps1" -IntervalSeconds 300
+
+Replace C:\Path\To\ with the actual location of the script then click OK to save and apply the changes to the shortcut.
+
+Right Click > Pin to Task Bar
