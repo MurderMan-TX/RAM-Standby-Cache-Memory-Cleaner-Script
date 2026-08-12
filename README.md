@@ -1,13 +1,9 @@
 # RAM-Standby-Cache-Memory-Cleaner-Script
 Powershell script based on RAMMap Microsoft program that Empties the Standby Cached memory for RAM on a configurable loop.
 
-Is your game Crashing in wuthering waves or experiencing lagging/performance issues?
+Is your game Crashing or experiencing lagging/performance issues?
 
 Then this might be the fix for you!
-
-My game used to crash 2 to 3 times per day.  I opened the task manager one day and just watched it while I played the game.
-
-What appears to be happening is that the Cached memory is not being unloaded properly while you play and the game engine itself has a maximum that it can hold before the game just crashes completely.
 
 I started my journey of fixing this by using a program for developers called RAMMap.  The operating system can basically tell all active programs to just empty out their standby memory (Including cashed memory) using a feature called Empty Standby List.
 
