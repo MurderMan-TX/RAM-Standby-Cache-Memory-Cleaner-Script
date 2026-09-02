@@ -25,10 +25,10 @@
     Disables logging.
 
 .EXAMPLE
-    .\StandbyCleaner.ps1 -Once
+    .\RAMStandbyCleanerV3.ps1 -Once
 
 .EXAMPLE
-    .\StandbyCleaner.ps1 -IntervalSeconds 300
+    .\RAMStandbyCleanerV3.ps1 -IntervalSeconds 300
 
 .NOTES
     Administrator privileges are required.
@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ScriptName = "StandbyCleaner"
+$ScriptName = "RAMStandbyCleanerV3"
 
 # Determine where the script is located.
 # If running from a script file, $PSScriptRoot will contain the path.
@@ -533,133 +533,40 @@ catch {
 # ============================================================
 
 function Get-MemoryInformation {
-
     try {
+        $memory = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
 
-        $OS = Get-CimInstance `
-            -ClassName Win32_OperatingSystem `
-            -ErrorAction Stop
+        $totalBytes = [double]$memory.TotalVisibleMemorySize * 1KB
+        $freeBytes  = [double]$memory.FreePhysicalMemory * 1KB
+        $usedBytes  = $totalBytes - $freeBytes
 
-        $TotalBytes = `
-            [double]$OS.TotalVisibleMemorySize * 1KB
+        # Query standby-cache counters through CIM/WMI instead of Get-Counter.
+        $cache = Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory -ErrorAction Stop
 
-        $FreeBytes = `
-            [double]$OS.FreePhysicalMemory * 1KB
+        $normalBytes  = [double]$cache.StandbyCacheNormalPriorityBytes
+        $reserveBytes = [double]$cache.StandbyCacheReserveBytes
+        $coreBytes    = [double]$cache.StandbyCacheCoreBytes
 
-        $UsedBytes = `
-            $TotalBytes - $FreeBytes
-
-
-        # ----------------------------------------------------
-        # DIRECT STANDBY CACHE PERFORMANCE COUNTERS
-        # ----------------------------------------------------
-        #
-        # These are much closer to the actual Standby Cache
-        # categories than "\Memory\Cache Bytes".
-        #
-        # Windows exposes:
-        #
-        #   Standby Cache Normal Priority Bytes
-        #   Standby Cache Reserve Bytes
-        #   Standby Cache Core Bytes
-        #
-        # We sum the standby-cache categories.
-        # ----------------------------------------------------
-
-        $StandbyCounters = Get-Counter `
-            -Counter @(
-                "\Memory\Standby Cache Normal Priority Bytes",
-                "\Memory\Standby Cache Reserve Bytes",
-                "\Memory\Standby Cache Core Bytes"
-            ) `
-            -ErrorAction Stop
-
-
-        $NormalPriorityBytes = 0
-        $ReserveBytes = 0
-        $CoreBytes = 0
-
-
-        foreach ($Sample in $StandbyCounters.CounterSamples) {
-
-            if ($Sample.Path -like "*Standby Cache Normal Priority Bytes") {
-
-                $NormalPriorityBytes = `
-                    [double]$Sample.CookedValue
-            }
-
-            elseif ($Sample.Path -like "*Standby Cache Reserve Bytes") {
-
-                $ReserveBytes = `
-                    [double]$Sample.CookedValue
-            }
-
-            elseif ($Sample.Path -like "*Standby Cache Core Bytes") {
-
-                $CoreBytes = `
-                    [double]$Sample.CookedValue
-            }
-        }
-
-
-        $StandbyBytes = `
-            $NormalPriorityBytes +
-            $ReserveBytes +
-            $CoreBytes
-
+        $standbyBytes = $normalBytes + $reserveBytes + $coreBytes
 
         return [PSCustomObject]@{
+            TotalBytes = $totalBytes
+            UsedBytes  = $usedBytes
+            FreeBytes  = $freeBytes
 
-            TotalGB = `
-                [Math]::Round(
-                    $TotalBytes / 1GB,
-                    2
-                )
+            TotalGB = $totalBytes / 1GB
+            UsedGB  = $usedBytes / 1GB
+            FreeGB  = $freeBytes / 1GB
 
-            FreeGB = `
-                [Math]::Round(
-                    $FreeBytes / 1GB,
-                    2
-                )
+            StandbyNormalGB  = $normalBytes / 1GB
+            StandbyReserveGB = $reserveBytes / 1GB
+            StandbyCoreGB    = $coreBytes / 1GB
 
-            UsedGB = `
-                [Math]::Round(
-                    $UsedBytes / 1GB,
-                    2
-                )
-
-            StandbyGB = `
-                [Math]::Round(
-                    $StandbyBytes / 1GB,
-                    2
-                )
-
-            StandbyNormalGB = `
-                [Math]::Round(
-                    $NormalPriorityBytes / 1GB,
-                    2
-                )
-
-            StandbyReserveGB = `
-                [Math]::Round(
-                    $ReserveBytes / 1GB,
-                    2
-                )
-
-            StandbyCoreGB = `
-                [Math]::Round(
-                    $CoreBytes / 1GB,
-                    2
-                )
-        }
-
+            StandbyGB = $standbyBytes / 1GB
+}
     }
     catch {
-
-        Write-Log `
-            "Could not retrieve memory information: $($_.Exception.Message)" `
-            -Level "WARNING"
-
+        Write-Log "[WARNING] Could not retrieve memory information: $($_.Exception.Message)"
         return $null
     }
 }
@@ -743,10 +650,6 @@ Write-Host ""
 
 $Status = `
     [StandbyMemory.NativeMethods]::EmptyStandbyList()
-
-        $Status = `
-            [StandbyMemory.NativeMethods]::EmptyStandbyList()
-
 
         # ----------------------------------------------------
         # SAFELY CONVERT NTSTATUS TO HEX
